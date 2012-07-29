@@ -6,118 +6,10 @@ import (
   //"sort"
   "encoding/gob"
   "os"
+  . "./assoc"
   //"flag"
   //"runtime/pprof"
-) 
-
-type BagsAgends [][]string
-
-type TransactionDB struct {
-  nexttid Id
-  nextiid Id
-  toIid map[string]Id
-  fromIid map[Id]string
-  tids TidLists
-}
-
-func NewTransactionDB () *TransactionDB{
-  return &TransactionDB{nexttid: 0,
-  nextiid: 0, toIid: make(map[string]Id),
-			  fromIid: make(map[Id]string),
-					tids: make(TidLists,0)}
-}
-
-func (t *TransactionDB) Tids(id Id) TidList {
-  return t.tids[id]
-}
-
-func (t *TransactionDB) MaxTid() Id {
-  return Id(t.nexttid - 1)
-}
-
-func (t *TransactionDB) MaxIid() Id {
-  return Id(t.nextiid - 1)
-}
-
-func (t *TransactionDB) Item(iid Id) string {
-  return t.fromIid[iid]
-}
-
-// all strings in transaction have to be unique
-func (t *TransactionDB) Append (transaction []string) {
-  tid := t.nextTid()
-  for _,item := range transaction {
-    iid := t.Iid(item)
-    // uniquenes check
-    if len(t.tids[iid]) != 0 {
-      last := t.tids[iid][len(t.tids[iid])-1]
-      if last == tid {
-	panic("an element is more than once in a transaction")
-      }
-    }
-    t.tids[iid] = append(t.tids[iid], tid)
-  }
-}
-
-func (t *TransactionDB) Iid (item string) Id {
-  iid, found := t.toIid[item]
-  if !found {
-    iid = t.nextiid
-    t.nextiid++
-    t.toIid[item] = iid
-    t.fromIid[iid] = item
-    
-    t.tids = append(t.tids, make(TidList,0))
-  }
-  return Id(iid)
-}
-
-func (t *TransactionDB) nextTid () Id {
-  tid := t.nexttid
-  t.nexttid++
-  return tid
-}
-
-type Id int
-type TidLists []TidList
-type TidList []Id
-func (ci TidList) IntersectedWith(cj TidList) TidList{
-  p := 0
-  q := 0
-  
-  intersection := make(TidList,0)
-  for p < len(ci) && q < len(cj) {
-    if ci[p] < cj[q] {
-	p++
-    } else if cj[q] < ci[p] {
-      q++
-    } else {
-    	intersection = append(intersection, ci[p])
-	p++
-	q++
-      }
-  }
-  return intersection
-}
-
-
-type Root struct {
-  Children Nodes
-}
-
-type Node struct {
-  V Id
-  TidList TidList
-  Children Nodes
-}
-
-func NewRoot() *Root{
-  return &Root{make(Nodes,0)}
-}
-
-func NewNode(id Id, tidlist TidList) *Node{
-  return &Node{id, tidlist, make(Nodes,0)}
-}
+)
 
 func Run (tdb *TransactionDB, root *Root, min_support int) {  
   for i := Id(0); i <= tdb.MaxIid(); i++ {
@@ -148,12 +40,6 @@ func run_recursive (tdb *TransactionDB, root *Root, node *Node, min_support int)
     run_recursive(tdb, root, node.Children[i-offset], min_support)
   }
 }
-
-type Nodes []*Node
-func (s Nodes) Len() int      { return len(s) }
-func (s Nodes) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
-type ByValue struct{ Nodes }
-func (s ByValue) Less(i, j int) bool { return s.Nodes[i].V < s.Nodes[j].V }
 
 func PrintTree (tdb *TransactionDB, root *Root) {
   for _,node := range root.Children {
@@ -229,7 +115,7 @@ func test () []Itemsets {
     return sets
 }
 
-func naostro () []Itemsets {
+func naostro (min_support int) (*TransactionDB, *Root, []Itemsets)  {
   f, err := os.Open("bag.gob")
   if err != nil {
     panic(err)
@@ -248,36 +134,36 @@ func naostro () []Itemsets {
   }
   
   root := NewRoot()
-   Run(tdb, root, 1000)
+   Run(tdb, root, min_support)
    //PrintTree(tdb, root)
    sets := ComputeSets(tdb, root)
-   return sets
+   return tdb, root, sets
 }
 
 func main () {
     log.Println("Started")
 
 //     naostro()
-    sets := naostro()
+    tdb, tree, sets := naostro(1000)
     //sets := test()
       
     
-    for i,r := range sets {
-      fmt.Println(i, len(r))
-      fmt.Println(r)
-    }
+//     for i,r := range sets {
+//       fmt.Println(i, len(r))
+//       fmt.Println(r)
+//     }
      
+  log.Println("Writing frequentitemsets.gob")
+    f,err := os.Create("frequentitemsets.gob")
+    if err != nil {
+      panic(err)
+    }
+    defer f.Close()
+    enc := gob.NewEncoder(f)
+    err = enc.Encode(FrequentItemsets{1000, tdb, tree, sets})
+	if err != nil {
+		panic(err)
+	}
     
     log.Println("Finished")
-}
-
-type FrequentItemsets struct {
-  Min_support int
-  Data []Itemsets
-}
-
-type Itemsets []Itemset
-type Itemset struct {
-  Support int
-  Items []string
 }

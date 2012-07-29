@@ -1,5 +1,8 @@
 package main
 
+// Splits a csv into sessions, serialized into a .gob file as a []Clicks structure.
+// Sessions from the same user are separated by 30 minutes or more of inactivity.
+
 import (
 	"encoding/csv"
 	"io"
@@ -9,24 +12,57 @@ import (
 	"sort"
 	"time"
 	"encoding/gob"
-//	"strings"
+	"flag"
+	"strings"
 //	"strconv"
 	. "./click"
 )
 
-const (
-	FAKE_UCO = iota
-	TYP_APLIKACE
-	DATUM_OPERACE
-	NAZEV_DNE_OPERACE
-	ADRESA_PRISLUSNOST
-	ADRESA_CHECKSUM
-)
+// const (
+// 	FAKE_UCO = iota
+// 	TYP_APLIKACE
+// 	DATUM_OPERACE
+// 	NAZEV_DNE_OPERACE
+// 	ADRESA_PRISLUSNOST
+// 	ADRESA_CHECKSUM
+// )
+
+var fnamep = flag.String("incsv", "", "csv file to read, output of the merging script")
+//																						  12345678 
+var patternp = flag.String("pattern", "........", "patern to filter people by. Example: \"m1..1..0\". Defaults to no filtering.")
+var outfnamep = flag.String("outgob", "", "a .gob file to write results into")
 
 func main() {
+		flag.Parse()
+		if *fnamep == "" {
+			log.Println("No input filename given")
+			return
+		}
+		if *outfnamep == "" {
+			log.Println("No output filename given")
+			return
+		}
+		if len(*patternp) != 8 {
+			log.Println("Pattern is of wrong length, must be 8")
+			return
+		}
+		
+		log.Println("Reading " + *fnamep)
 
-		log.Println("reading zaznamy_export_data")
-		df, err := os.Open("zaznamy_export_data")
+		list := read_csv(*fnamep, *patternp)
+        log.Println("Processing")
+        sort.Sort(ByIpFucoTime{list})
+		sessions := split_sessions(list)
+	
+
+	fmt.Println("no of sessions:", len(sessions))
+	log.Println("Serializing sessions to " + *outfnamep)
+	serialize_sessions(*outfnamep, sessions)
+	log.Println("Done")
+}
+
+func read_csv(fname, pattern string) Clicks {
+		df, err := os.Open(fname)
 		if err != nil {
 			panic(err)
 		}
@@ -35,7 +71,7 @@ func main() {
 	
 		list := make(Clicks,0)
 	
-		dr.Read() // skip header
+		// no header line
 		for {
 			dline, err := dr.Read()
 			if err == io.EOF {
@@ -45,24 +81,31 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
-	
-			list = append(list, NewClickFromList(dline))
+			//                      
+			if select_click(dline, pattern) {
+				// we need to have fuco in the first place :(
+				data_line := make([]string,6)
+				data_line[0] = dline[0] // FUCO
+				copy(data_line[1:6], dline[9:])
+				list = append(list, NewClickFromList(data_line))
+			}
 			
 			//debug
-	//  		if key == "/lide/" {
-	//  		  break
-	//  }
+//  	  		if dline[9] == "/lide/" {
+//  	  		  break
+//  			}
 		}
-		
-        log.Println("processing")
-        sort.Sort(ByIpFucoTime{list})
-	sessions := split_sessions(list)
-	
+		return list
+}
 
-	fmt.Println("sessions:", len(sessions))
-	log.Println("serializing sessions")
-	serialize_sessions("sessions.gob", sessions)
-	log.Println("finished")
+func select_click(record []string, mask string) bool {
+	id := strings.Join(record[1:9],"")
+	for i,b := range mask {
+		if rune(id[i]) != b && b != '.' {
+			return false
+		}
+	}
+	return true
 }
 
 func serialize_sessions(filename string, sessions []Clicks) {
