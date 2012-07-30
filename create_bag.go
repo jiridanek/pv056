@@ -5,11 +5,11 @@ import (
 	"encoding/gob"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"sort"
 	"strings"
-	"io"
 )
 
 var infnamep = flag.String("ingob", "", "input .gob file name. File is produced by a seqence click script.")
@@ -60,7 +60,7 @@ func main() {
 		}
 		bag := make([]string, 0)
 		for k, _ := range set {
-			item := "TYP_AGENDY:"+k
+			item := "TYP_AGENDY:" + k
 			bag = append(bag, item)
 			setofallitems[item] = true
 		}
@@ -98,9 +98,9 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		
-		listofallitems := make([]string,0)
-		for k,_ := range setofallitems {
+
+		listofallitems := make([]string, 0)
+		for k, _ := range setofallitems {
 			listofallitems = append(listofallitems, k)
 		}
 		sort.Strings(listofallitems)
@@ -110,30 +110,30 @@ func main() {
 		}
 
 		io.WriteString(bagf, "@RELATION bagofagends\n")
-		for _,item := range listofallitems {
-			io.WriteString(bagf, "@ATTRIBUTE " + item + " {0,1}\n")
+		for _, item := range listofallitems {
+			io.WriteString(bagf, "@ATTRIBUTE "+item+" {0,1}\n")
 		}
 		io.WriteString(bagf, "@DATA\n")
-		for _,bag := range bags {
+		for _, bag := range bags {
 			//fmt.Fprintln(bagf, bag)
-// 			j := 0
-// 			for i, item := range listofallitems {
-// 				if j < len(bag) && item == bag[j] {
-// 					io.WriteString(bagf, "1")
-// 					j++
-// 				} else {
-// 					io.WriteString(bagf, "0")
-// 				}
-// 				// last item
-// 				if i == len(listofallitems) - 1 {
-// 					io.WriteString(bagf, "\n")
-// 				} else {
-// 					io.WriteString(bagf, ",")
-// 				}
-// 			}
+			// 			j := 0
+			// 			for i, item := range listofallitems {
+			// 				if j < len(bag) && item == bag[j] {
+			// 					io.WriteString(bagf, "1")
+			// 					j++
+			// 				} else {
+			// 					io.WriteString(bagf, "0")
+			// 				}
+			// 				// last item
+			// 				if i == len(listofallitems) - 1 {
+			// 					io.WriteString(bagf, "\n")
+			// 				} else {
+			// 					io.WriteString(bagf, ",")
+			// 				}
+			// 			}
 			// we want sparse ARFF for this
 			io.WriteString(bagf, "{")
-			for i,item := range bag {
+			for i, item := range bag {
 				atnum, found := at2atnum[item]
 				if !found {
 					panic("")

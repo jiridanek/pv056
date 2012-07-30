@@ -7,10 +7,10 @@ package main
 import (
 	"encoding/csv"
 	"io"
-	"os"
 	"log"
-	"strings"
+	"os"
 	"strconv"
+	"strings"
 )
 
 func main() {
@@ -82,16 +82,16 @@ func main() {
 		line := sanitizeLine(append(lline, dline[1:]...))
 		//log.Println(line)
 		rw.Write(line)
-		
+
 	}
 
 	rw.Flush()
 	log.Println("done")
 }
 
-func sanitizeLine (line []string) []string {
-  aplikace := 9
-  ret := line[:]
-  ret[aplikace] = strings.Replace(ret[aplikace], "%", "$", -1)
-  return ret
+func sanitizeLine(line []string) []string {
+	aplikace := 9
+	ret := line[:]
+	ret[aplikace] = strings.Replace(ret[aplikace], "%", "$", -1)
+	return ret
 }

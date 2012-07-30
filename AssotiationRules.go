@@ -31,33 +31,33 @@ func test_partition() {
 }
 
 func main() {
-	
-//	test_partition()
-	
+
+	//	test_partition()
+
 	min_confidence := 0.5
 	var fiset *FrequentItemsets
 	fiset = LoadData("frequentitemsets.gob")
 	fiset.Sort()
 
-	rules := make([]*AssociationRule,0)
+	rules := make([]*AssociationRule, 0)
 	for _, itemsets := range fiset.Data {
 		for _, itemset := range itemsets {
 			partitioned := partition(itemset.Items)
 			for _, rule := range partitioned {
-					if rule.confidence(fiset) >= min_confidence {
-					  rules = append(rules, NewAssociationRule(rule, fiset))
-					}
+				if rule.confidence(fiset) >= min_confidence {
+					rules = append(rules, NewAssociationRule(rule, fiset))
+				}
 			}
-			
+
 		}
 	}
-	
+
 	sort.Sort(Reverse{ByConfidence{rules}})
-// 	  for _,rule := range rules {
-// 		fmt.Println(*rule)
-// 	  }
+	// 	  for _,rule := range rules {
+	// 		fmt.Println(*rule)
+	// 	  }
 	print_association_rules(fiset, rules)
-	
+
 }
 
 type AssociationRules []*AssociationRule
@@ -128,11 +128,11 @@ func (r *Rule) lift(fset *FrequentItemsets) float64 {
 	union = append(union, r.Left...)
 	union = append(union, r.Right...)
 	//sort.Strings(union)
-	
+
 	//Tids are zero based
-	tidno := fset.TDB.MaxTid()+1
+	tidno := fset.TDB.MaxTid() + 1
 	//fmt.Println(tidno)
-	return (float64(support(fset, union)) * float64(tidno)) / ( float64(support(fset, r.Left))*float64(support(fset, r.Right)) )
+	return (float64(support(fset, union)) * float64(tidno)) / (float64(support(fset, r.Left)) * float64(support(fset, r.Right)))
 }
 
 func partition(set []string) []*Rule {
@@ -145,38 +145,38 @@ func partition(set []string) []*Rule {
 		}
 	}
 	// first rule is []|[…] and last […]|[]
-	return rules[1:len(rules)-1]
+	return rules[1 : len(rules)-1]
 }
 
 func support(fset *FrequentItemsets, set []string) int {
-	idset := make(TidList,0,len(set))
-	for _,v := range set {
+	idset := make(TidList, 0, len(set))
+	for _, v := range set {
 		idset = append(idset, fset.TDB.Iid(v))
 	}
 	sort.Sort(idset)
 	return faster_support(fset, idset)
-/*	
-	if len(fset.Data)-1 < len(set)-1 {
-		panic("set too big")
-	}
-	sort.Strings(set)
-nextset:
-	for _, v := range fset.Data[len(set)-1] {
-		// both lists will be ordered in the same way
-		for i := range set {
-			if v.Items[i] != set[i] {
-				continue nextset
-			}
+	/*	
+		if len(fset.Data)-1 < len(set)-1 {
+			panic("set too big")
 		}
-		return v.Support
-	}
-	panic("set not found")
-*/
+		sort.Strings(set)
+	nextset:
+		for _, v := range fset.Data[len(set)-1] {
+			// both lists will be ordered in the same way
+			for i := range set {
+				if v.Items[i] != set[i] {
+					continue nextset
+				}
+			}
+			return v.Support
+		}
+		panic("set not found")
+	*/
 }
 
 func faster_support(fiset *FrequentItemsets, set []Id) int {
 	node := fiset.Tree.Children[set[0]]
-	for _,v := range set[1:] {
+	for _, v := range set[1:] {
 		offset := node.V + 1
 		// the way this function is used, this will never be out of bounds
 		node = node.Children[v-offset]
@@ -185,10 +185,10 @@ func faster_support(fiset *FrequentItemsets, set []Id) int {
 }
 
 func print_association_rules(fiset *FrequentItemsets, rules []*AssociationRule) {
-	for _,rule := range rules {
+	for _, rule := range rules {
 		fmt.Printf("%v %v => %v %v", rule.Left, support(fiset, rule.Left), rule.Right, support(fiset, rule.Right))
 		fmt.Printf(" conf: %.2f, lift: %0.2f", rule.confidence, rule.lift)
 		fmt.Printf("\n")
 	}
-	
+
 }

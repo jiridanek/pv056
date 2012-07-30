@@ -6,11 +6,12 @@ package main
 
 import (
 	"encoding/csv"
-	"io"
-	"os"
-	"log"
 	"fmt"
+	"io"
+	"log"
+	"os"
 	"strings"
+
 //	"strconv"
 )
 
@@ -24,7 +25,7 @@ func main() {
 	lr := csv.NewReader(lf)
 	lr.FieldsPerRecord = 9
 
-	l := make(map[string] int)
+	l := make(map[string]int)
 
 	lr.Read() // skip headerlr.Read()
 	for {
@@ -36,20 +37,20 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-// 		fuco, err := strconv.ParseInt(lline[0], 10, 32)
-// 		if err != nil {
-// 			panic(err)
-// 		}
-		key := make_key(lline[2:9])	
+		// 		fuco, err := strconv.ParseInt(lline[0], 10, 32)
+		// 		if err != nil {
+		// 			panic(err)
+		// 		}
+		key := make_key(lline[2:9])
 		l[key] += 1
-		
+
 	}
 	fmt.Println("STUDIUM_NA_FI,AKTIVNI_STUDIUM_NA_FI,USPESNE_STUDIUM_NA_FI,STUDIUM_NA_MU,AKTIVNI_STUDIUM_NA_MU,USPESNE_STUDIUM_NA_MU,UCITEL")
-	for k,v := range l {
-	  fmt.Println(k, v)
+	for k, v := range l {
+		fmt.Println(k, v)
 	}
 }
 
-func make_key(flags []string) string{
- return strings.Join(flags,"")
+func make_key(flags []string) string {
+	return strings.Join(flags, "")
 }
